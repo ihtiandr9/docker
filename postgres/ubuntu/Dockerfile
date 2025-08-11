@@ -2,8 +2,8 @@ FROM ubuntu:22.04 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-## ENV TZ=Asia/Irkutsk
-ENV TZ=Europe/Moscow
+ENV TZ=Asia/Irkutsk
+## ENV TZ=Europe/Moscow
 
 RUN apt-get update && apt-get install -yq tzdata 
 
@@ -16,5 +16,7 @@ RUN apt-get install -yq postgresql-14
 
 RUN systemctl enable postgresql
 
+COPY docker-services.sh /
+
 ## ENTRYPOINT [ "/etc/init.d/postgresql", "start" ]
-CMD [ "pg_ctlcluster","14","main","start"]
+CMD ["bash", "/docker-services.sh"]
