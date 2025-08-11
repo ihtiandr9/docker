@@ -1,20 +1,35 @@
-FROM debian:10 AS base
+FROM debian:12 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-## ENV TZ=Asia/Irkutsk
-ENV TZ=Europe/Moscow
+# Настройка временной зоны
+ENV TZ=Asia/Irkutsk
 
-RUN apt-get update && apt-get install -yq tzdata 
+# Установка sources.list
+COPY sources.list /etc/apt/sources.list
 
-RUN apt-get install -yq mc systemd vim
+# Установка tzdata
+RUN apt-get update && apt-get install -yq tzdata mc vim
 
 ## Install and setup postgres
-FROM base 
+FROM base AS sql
 
-RUN apt-get install -yq postgresql-14
+RUN apt-get install -yq postgresql-15
 
-RUN systemctl enable postgresql
+FROM sql AS initscripts
 
-## ENTRYPOINT [ "/etc/init.d/postgresql", "start" ]
-CMD [ "pg_ctlcluster","14","main","start"]
+COPY create_user.sql createuser.sh docker-services.sh /
+
+FROM initscripts AS dbinit
+
+RUN bash /createuser.sh
+
+COPY postgresql.conf pg_hba.conf /etc/postgresql/15/main/
+
+RUN chown postgres:postgres /etc/postgresql/15/main/pg_hba.conf
+
+RUN chown postgres:postgres /etc/postgresql/15/main/postgresql.conf
+
+EXPOSE 5432
+CMD ["bash", "/docker-services.sh"]
+# CMD ["bash"]
