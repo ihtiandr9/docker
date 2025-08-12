@@ -2,19 +2,29 @@ FROM debian:10 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-## ENV TZ=Asia/Irkutsk
-ENV TZ=Europe/Moscow
+ENV TZ=Asia/Irkutsk
 
 RUN apt-get update && apt-get install -yq tzdata 
 
-RUN apt-get install -yq mc systemd vim
+RUN apt-get install -yq mc vim
 
 ## Install and setup postgres
-FROM base 
+FROM base AS sql
 
 RUN apt-get install -yq postgresql-14
 
-RUN systemctl enable postgresql
+## RUN systemctl enable postgresql
 
-## ENTRYPOINT [ "/etc/init.d/postgresql", "start" ]
-CMD [ "pg_ctlcluster","14","main","start"]
+FROM sql AS initscripts
+
+COPY mycomps.sql /
+
+COPY createdb.sh /
+
+COPY docker-services.sh /
+
+FROM initscripts AS dbinit
+
+RUN bash /createdb.sh
+
+CMD ["bash", "/docker-services.sh"]
